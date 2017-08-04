@@ -33,6 +33,11 @@ require "models/organization"
 require "models/user"
 require "models/family"
 require "models/family_tree"
+require "models/hotel"
+require "models/department"
+require "models/chef"
+require "models/cake_designer"
+require "models/drink_designer"
 
 class HasManyThroughAssociationsTest < ActiveRecord::TestCase
   fixtures :posts, :readers, :people, :comments, :authors, :categories, :taggings, :tags,
@@ -1253,6 +1258,19 @@ class HasManyThroughAssociationsTest < ActiveRecord::TestCase
         companies: [Company.create]
       )
     end
+  end
+
+  def test_preloading_polymorphic_source_on_two_level_has_many_through
+    hotel = Hotel.create!
+    department = hotel.departments.create!
+    cake_designer = CakeDesigner.create!
+    department.chefs.create!(employable: cake_designer)
+    department.chefs.create!(employable: DrinkDesigner.create!)
+
+    found_cake_designers = Hotel.preload(:cake_designers).find(hotel.id).cake_designers
+
+    assert_equal 1, found_cake_designers.size
+    assert_equal cake_designer, found_cake_designers.first
   end
 
   private

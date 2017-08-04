@@ -28,6 +28,7 @@ module ActiveRecord
 
           middle_records = through_records.flat_map(&:last)
 
+          reflection_scope.merge!(preload_scope) if preload_scope
           preloaders = preloader.preload(middle_records,
                                          source_reflection.name,
                                          reflection_scope)
