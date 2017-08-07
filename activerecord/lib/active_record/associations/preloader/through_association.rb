@@ -15,13 +15,20 @@ module ActiveRecord
         def associated_records_by_owner(preloader)
           through_scope = through_scope()
 
-          preloader.preload(owners,
+          loaded_preloaders = preloader.preload(owners,
                             through_reflection.name,
-                            through_scope)
+                            through_scope,
+                            should_skip_setting_association?(owners, through_reflection.name, through_scope))
 
-          through_records = owners.map do |owner|
-            center = owner.association(through_reflection.name).target
-            [owner, Array(center)]
+          prel = loaded_preloaders.last
+
+          if prel.instance_of? AlreadyLoaded
+            through_records = owners.map do |owner|
+              center = owner.association(through_reflection.name).target
+              [owner, Array(center)]
+            end
+          else
+            through_records = prel.result.to_a
           end
 
           #reset_association(owners, through_reflection.name, through_scope)
@@ -31,8 +38,7 @@ module ActiveRecord
           reflection_scope.merge!(preload_scope) if preload_scope
           preloaders = preloader.preload(middle_records,
                                          source_reflection.name,
-                                         reflection_scope,
-                                         should_skip_setting_association?(owners, through_reflection.name, through_scope))
+                                         reflection_scope)
 
           @preloaded_records = preloaders.flat_map(&:preloaded_records)
 

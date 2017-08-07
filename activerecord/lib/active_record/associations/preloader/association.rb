@@ -4,7 +4,7 @@ module ActiveRecord
   module Associations
     class Preloader
       class Association #:nodoc:
-        attr_reader :owners, :reflection, :preload_scope, :model, :klass
+        attr_reader :owners, :reflection, :preload_scope, :model, :klass, :result
         attr_reader :preloaded_records
 
         def initialize(klass, owners, reflection, preload_scope, skip_setting_association)
@@ -15,6 +15,7 @@ module ActiveRecord
           @model         = owners.first && owners.first.class
           @preloaded_records = []
           @skip_setting_association = skip_setting_association
+          @result        = nil
         end
 
         def run(preloader)
@@ -49,7 +50,7 @@ module ActiveRecord
               end
             end
 
-            owners.each_with_object({}) do |owner, result|
+            @result = owners.each_with_object({}) do |owner, result|
               result[owner] = records[convert_key(owner[owner_key_name])] || []
             end
           end
