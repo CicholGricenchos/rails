@@ -90,7 +90,7 @@ module ActiveRecord
       #   [ :books, :author ]
       #   { author: :avatar }
       #   [ :books, { author: :avatar } ]
-      def preload(records, associations, preload_scope = nil)
+      def preload(records, associations, preload_scope = nil, skip_setting_association = false)
         records       = Array.wrap(records).compact.uniq
         associations  = Array.wrap(associations)
 
@@ -98,7 +98,7 @@ module ActiveRecord
           []
         else
           associations.flat_map { |association|
-            preloaders_on association, records, preload_scope
+            preloaders_on association, records, preload_scope, skip_setting_association
           }
         end
       end
@@ -106,26 +106,26 @@ module ActiveRecord
       private
 
         # Loads all the given data into +records+ for the +association+.
-        def preloaders_on(association, records, scope)
+        def preloaders_on(association, records, scope, skip_setting_association)
           case association
           when Hash
-            preloaders_for_hash(association, records, scope)
+            preloaders_for_hash(association, records, scope, skip_setting_association)
           when Symbol
-            preloaders_for_one(association, records, scope)
+            preloaders_for_one(association, records, scope, skip_setting_association)
           when String
-            preloaders_for_one(association.to_sym, records, scope)
+            preloaders_for_one(association.to_sym, records, scope, skip_setting_association)
           else
             raise ArgumentError, "#{association.inspect} was not recognized for preload"
           end
         end
 
-        def preloaders_for_hash(association, records, scope)
+        def preloaders_for_hash(association, records, scope, skip_setting_association)
           association.flat_map { |parent, child|
-            loaders = preloaders_for_one parent, records, scope
+            loaders = preloaders_for_one parent, records, scope, skip_setting_association
 
             recs = loaders.flat_map(&:preloaded_records).uniq
             loaders.concat Array.wrap(child).flat_map { |assoc|
-              preloaders_on assoc, recs, scope
+              preloaders_on assoc, recs, scope, skip_setting_association
             }
             loaders
           }
@@ -143,10 +143,10 @@ module ActiveRecord
         # Additionally, polymorphic belongs_to associations can have multiple associated
         # classes, depending on the polymorphic_type field. So we group by the classes as
         # well.
-        def preloaders_for_one(association, records, scope)
+        def preloaders_for_one(association, records, scope, skip_setting_association)
           grouped_records(association, records).flat_map do |reflection, klasses|
             klasses.map do |rhs_klass, rs|
-              loader = preloader_for(reflection, rs).new(rhs_klass, rs, reflection, scope)
+              loader = preloader_for(reflection, rs).new(rhs_klass, rs, reflection, scope, skip_setting_association)
               loader.run self
               loader
             end
@@ -168,7 +168,7 @@ module ActiveRecord
         class AlreadyLoaded # :nodoc:
           attr_reader :owners, :reflection
 
-          def initialize(klass, owners, reflection, preload_scope)
+          def initialize(klass, owners, reflection, preload_scope, skip_setting_association)
             @owners = owners
             @reflection = reflection
           end

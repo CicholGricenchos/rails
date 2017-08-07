@@ -24,14 +24,15 @@ module ActiveRecord
             [owner, Array(center)]
           end
 
-          reset_association(owners, through_reflection.name, through_scope)
+          #reset_association(owners, through_reflection.name, through_scope)
 
           middle_records = through_records.flat_map(&:last)
 
           reflection_scope.merge!(preload_scope) if preload_scope
           preloaders = preloader.preload(middle_records,
                                          source_reflection.name,
-                                         reflection_scope)
+                                         reflection_scope,
+                                         should_skip_setting_association?(owners, through_reflection.name, through_scope))
 
           @preloaded_records = preloaders.flat_map(&:preloaded_records)
 
@@ -66,6 +67,11 @@ module ActiveRecord
             id_map = {}
             ids.each_with_index { |id, index| id_map[id] = index }
             id_map
+          end
+
+          def should_skip_setting_association?(owners, association_name, through_scope)
+            (through_scope != through_reflection.klass.unscoped) ||
+               (options[:source_type] && through_reflection.collection?)
           end
 
           def reset_association(owners, association_name, through_scope)

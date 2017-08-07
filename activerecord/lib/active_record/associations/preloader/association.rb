@@ -7,20 +7,21 @@ module ActiveRecord
         attr_reader :owners, :reflection, :preload_scope, :model, :klass
         attr_reader :preloaded_records
 
-        def initialize(klass, owners, reflection, preload_scope)
+        def initialize(klass, owners, reflection, preload_scope, skip_setting_association)
           @klass         = klass
           @owners        = owners
           @reflection    = reflection
           @preload_scope = preload_scope
           @model         = owners.first && owners.first.class
           @preloaded_records = []
+          @skip_setting_association = skip_setting_association
         end
 
         def run(preloader)
-          preload(preloader)
+          preload(preloader, @skip_setting_association)
         end
 
-        def preload(preloader)
+        def preload(preloader, skip_setting_association = false)
           raise NotImplementedError
         end
 
@@ -42,8 +43,10 @@ module ActiveRecord
           def associated_records_by_owner(preloader)
             records = load_records do |record|
               owner = owners_by_key[convert_key(record[association_key_name])]
-              association = owner.association(reflection.name)
-              association.set_inverse_instance(record)
+              unless @skip_setting_association
+                association = owner.association(reflection.name)
+                association.set_inverse_instance(record)
+              end
             end
 
             owners.each_with_object({}) do |owner, result|
