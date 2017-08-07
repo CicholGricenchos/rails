@@ -1264,13 +1264,16 @@ class HasManyThroughAssociationsTest < ActiveRecord::TestCase
     hotel = Hotel.create!
     department = hotel.departments.create!
     cake_designer = CakeDesigner.create!
+    drink_designer = DrinkDesigner.create!
     department.chefs.create!(employable: cake_designer)
-    department.chefs.create!(employable: DrinkDesigner.create!)
+    department.chefs.create!(employable: drink_designer)
 
-    found_cake_designers = Hotel.preload(:cake_designers).find(hotel.id).cake_designers
+    hotel = Hotel.eager_load(:cake_designers, :drink_designers).find(hotel.id)
 
-    assert_equal 1, found_cake_designers.size
-    assert_equal cake_designer, found_cake_designers.first
+    assert_equal 1, hotel.cake_designers.size
+    assert_equal cake_designer, hotel.cake_designers.first
+    assert_equal 1, hotel.drink_designers.size
+    assert_equal drink_designer, hotel.drink_designers.first
   end
 
   private
