@@ -20,17 +20,34 @@ module ActiveRecord
                             through_scope,
                             should_skip_setting_association?(owners, through_reflection.name, through_scope))
 
-          through_records = loaded_preloaders.first.result.to_a
+          through_records = loaded_preloaders.map{|pl| pl.result}.inject({}, :merge)
 
           middle_records = through_records.flat_map(&:last)
 
           reflection_scope.merge!(preload_scope) if preload_scope
           preloaders = preloader.preload(middle_records,
                                          source_reflection.name,
-                                         reflection_scope)
+                                         reflection_scope,
+                                         @skip_setting_association)
 
           @preloaded_records = preloaders.flat_map(&:preloaded_records)
 
+          reflection_records = preloaders.map{|pl| pl.result}.inject({}, :merge)
+
+          @result = through_records.each_with_object({}) do |(lhs, center), records_by_owner|
+            rhs_records = Array(center).flat_map do |middle|
+              reflection_records[middle]
+            end.compact
+
+            # Respect the order on `reflection_scope` if it exists, else use the natural order.
+            records_by_owner[lhs] = if reflection_scope.values[:order].present?
+              @id_map ||= id_to_index_map @preloaded_records
+              rhs_records.sort_by { |rhs| @id_map[rhs] }
+            else
+              rhs_records
+            end
+          end
+=begin
           middle_to_pl = preloaders.each_with_object({}) do |pl, h|
             pl.owners.each { |middle|
               h[middle] = pl
@@ -54,6 +71,7 @@ module ActiveRecord
               end
             end
           end
+=end
         end
 
         private

@@ -146,7 +146,7 @@ module ActiveRecord
         def preloaders_for_one(association, records, scope, skip_setting_association)
           grouped_records(association, records).flat_map do |reflection, klasses|
             klasses.map do |rhs_klass, rs|
-              loader = preloader_for(reflection, rs).new(rhs_klass, rs, reflection, scope, skip_setting_association)
+              loader = preloader_for(reflection, rs, skip_setting_association).new(rhs_klass, rs, reflection, scope, skip_setting_association)
               loader.run self
               loader
             end
@@ -190,8 +190,8 @@ module ActiveRecord
         # and attach it to a relation. For example +Preloader::Association+ or
         # +Preloader::HasManyThrough+. The class returned implements a `run` method
         # that accepts a preloader.
-        def preloader_for(reflection, owners)
-          if owners.first.association(reflection.name).loaded?
+        def preloader_for(reflection, owners, skip_setting_association)
+          if owners.first.association(reflection.name).loaded? && !skip_setting_association
             return AlreadyLoaded
           end
           reflection.check_preloadable!

@@ -1268,12 +1268,17 @@ class HasManyThroughAssociationsTest < ActiveRecord::TestCase
     department.chefs.create!(employable: cake_designer)
     department.chefs.create!(employable: drink_designer)
 
-    hotel = Hotel.eager_load(:cake_designers, :drink_designers).find(hotel.id)
+    hotel = Hotel.preload(:chefs, :cake_designers, :drink_designers).find(hotel.id)
 
-    assert_equal 1, hotel.cake_designers.size
-    assert_equal cake_designer, hotel.cake_designers.first
-    assert_equal 1, hotel.drink_designers.size
-    assert_equal drink_designer, hotel.drink_designers.first
+    assert_no_queries do
+      assert_equal 2, hotel.chefs.size
+
+      assert_equal 1, hotel.cake_designers.size
+      assert_equal cake_designer, hotel.cake_designers.first
+
+      assert_equal 1, hotel.drink_designers.size
+      assert_equal drink_designer, hotel.drink_designers.first
+    end
   end
 
   private
