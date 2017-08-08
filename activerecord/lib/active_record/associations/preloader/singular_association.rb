@@ -6,12 +6,16 @@ module ActiveRecord
       class SingularAssociation < Association #:nodoc:
         private
 
-          def preload(preloader)
-            associated_records_by_owner(preloader).each do |owner, associated_records|
-              record = associated_records.first
+          def preload(preloader, skip_setting_target = false)
+            if skip_setting_target
+              associated_records_by_owner(preloader)
+            else
+              associated_records_by_owner(preloader).each do |owner, associated_records|
+                record = associated_records.first
 
-              association = owner.association(reflection.name)
-              association.target = record
+                association = owner.association(reflection.name)
+                association.target = record
+              end
             end
           end
       end

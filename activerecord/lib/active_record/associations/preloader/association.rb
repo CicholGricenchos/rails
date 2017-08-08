@@ -4,23 +4,25 @@ module ActiveRecord
   module Associations
     class Preloader
       class Association #:nodoc:
-        attr_reader :owners, :reflection, :preload_scope, :model, :klass
+        attr_reader :owners, :reflection, :preload_scope, :model, :klass, :loaded_associated_records_by_owner
         attr_reader :preloaded_records
 
-        def initialize(klass, owners, reflection, preload_scope)
+        def initialize(klass, owners, reflection, preload_scope, skip_setting_target)
           @klass         = klass
           @owners        = owners
           @reflection    = reflection
           @preload_scope = preload_scope
           @model         = owners.first && owners.first.class
           @preloaded_records = []
+          @skip_setting_target = skip_setting_target
+          @loaded_associated_records_by_owner = nil
         end
 
         def run(preloader)
-          preload(preloader)
+          preload(preloader, @skip_setting_target)
         end
 
-        def preload(preloader)
+        def preload(preloader, skip_setting_target = false)
           raise NotImplementedError
         end
 
@@ -46,7 +48,7 @@ module ActiveRecord
               association.set_inverse_instance(record)
             end
 
-            owners.each_with_object({}) do |owner, result|
+            @loaded_associated_records_by_owner = owners.each_with_object({}) do |owner, result|
               result[owner] = records[convert_key(owner[owner_key_name])] || []
             end
           end
