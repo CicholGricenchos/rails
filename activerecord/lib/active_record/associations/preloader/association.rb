@@ -44,10 +44,8 @@ module ActiveRecord
           def associated_records_by_owner(preloader)
             records = load_records do |record|
               owner = owners_by_key[convert_key(record[association_key_name])]
-              unless @skip_setting_association
-                association = owner.association(reflection.name)
-                association.set_inverse_instance(record)
-              end
+              association = owner.association(reflection.name)
+              association.set_inverse_instance(record)
             end
 
             @result = owners.each_with_object({}) do |owner, result|
