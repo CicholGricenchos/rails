@@ -20,18 +20,7 @@ module ActiveRecord
                             through_scope,
                             should_skip_setting_association?(owners, through_reflection.name, through_scope))
 
-          prel = loaded_preloaders.last
-
-          if prel.instance_of? AlreadyLoaded
-            through_records = owners.map do |owner|
-              center = owner.association(through_reflection.name).target
-              [owner, Array(center)]
-            end
-          else
-            through_records = prel.result.to_a
-          end
-
-          #reset_association(owners, through_reflection.name, through_scope)
+          through_records = loaded_preloaders.first.result.to_a
 
           middle_records = through_records.flat_map(&:last)
 
@@ -48,8 +37,8 @@ module ActiveRecord
             }
           end
 
-          through_records.each_with_object({}) do |(lhs, center), records_by_owner|
-            pl_to_middle = center.group_by { |record| middle_to_pl[record] }
+          @result = through_records.each_with_object({}) do |(lhs, center), records_by_owner|
+            pl_to_middle = Array(center).group_by { |record| middle_to_pl[record] }
 
             records_by_owner[lhs] = pl_to_middle.flat_map do |pl, middles|
               rhs_records = middles.flat_map { |r|
@@ -78,18 +67,6 @@ module ActiveRecord
           def should_skip_setting_association?(owners, association_name, through_scope)
             (through_scope != through_reflection.klass.unscoped) ||
                (options[:source_type] && through_reflection.collection?)
-          end
-
-          def reset_association(owners, association_name, through_scope)
-            should_reset = (through_scope != through_reflection.klass.unscoped) ||
-               (options[:source_type] && through_reflection.collection?)
-
-            # Don't cache the association - we would only be caching a subset
-            if should_reset
-              owners.each { |owner|
-                owner.association(association_name).reset
-              }
-            end
           end
 
           def through_scope

@@ -178,6 +178,12 @@ module ActiveRecord
           def preloaded_records
             owners.flat_map { |owner| owner.association(reflection.name).target }
           end
+
+          def result
+            owners.map do |owner|
+              [owner, owner.association(reflection.name).target]
+            end.to_h
+          end
         end
 
         # Returns a class containing the logic needed to load preload the data
