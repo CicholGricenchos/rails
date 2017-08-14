@@ -24,10 +24,11 @@ module ActiveRecord
 
           middle_records = through_records.flat_map(&:last)
 
-          reflection_scope.merge!(preload_scope) if preload_scope
+          scope = reflection_scope
+          scope = scope.merge(preload_scope) if preload_scope
           preloaders = preloader.preload(middle_records,
                                          source_reflection.name,
-                                         reflection_scope,
+                                         scope,
                                          @skip_setting_target)
 
           @preloaded_records = preloaders.flat_map(&:preloaded_records)
